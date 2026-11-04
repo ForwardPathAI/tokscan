@@ -7,7 +7,7 @@ import { priceCall } from "../src/pricing.ts";
 import { issueFromBranch, normalizeRemote } from "../src/repo.ts";
 import { parseClaudeFile } from "../src/sources/claude.ts";
 import { parseCodexFile } from "../src/sources/codex.ts";
-import { bucketize, cutoffHour, isAllowed, OTHER, uuidFrom } from "../src/sync.ts";
+import { bucketize, cutoffHour, isAllowed, OTHER, toEvent, uuidFrom } from "../src/sync.ts";
 import { newCall } from "../src/types.ts";
 
 const tmp = () => mkdtempSync(path.join(tmpdir(), "tokscan-test-"));
@@ -30,6 +30,8 @@ test("issueFromBranch", () => {
   expect(issueFromBranch("mack/pod-1860-fix-auth")).toBe("POD-1860");
   expect(issueFromBranch("main")).toBe("");
   expect(issueFromBranch("t3/0553d250")).toBe("");
+  expect(issueFromBranch("review-1")).toBe("");
+  expect(issueFromBranch("setup-2-then-cus-5501-x")).toBe("CUS-5501");
 });
 
 describe("claude", () => {
@@ -145,6 +147,13 @@ describe("sync buckets", () => {
     expect(ten.input).toBe(20);
     const other = b.find((x) => x.repo === OTHER)!;
     expect(other.branch).toBe("");
+  });
+
+  test("events opt out of IP and GeoIP capture", () => {
+    const [b] = bucketize([mk("2026-11-01T10:05:00Z", "github.com/forwardpathai/a")], "me@x.ai", ["github.com/forwardpathai/"]);
+    const e = toEvent(b!, "me@x.ai");
+    expect(e.properties.$ip).toBeNull();
+    expect(e.properties.$geoip_disable).toBe(true);
   });
 
   test("uuid is stable and valid", () => {

@@ -1,6 +1,6 @@
 {
   "name": "tokscan",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Per-project AI token usage from local coding-agent logs",

@@ -156,6 +156,9 @@ export function toEvent(b: Bucket, email: string) {
       unpriced_calls: b.unpriced,
       tokscan_version: VERSION,
       $set: { email },
+      // Don't let PostHog attach the sender's IP address or IP-based location.
+      $ip: null,
+      $geoip_disable: true,
     },
   };
 }

@@ -114,8 +114,16 @@ function gitRemote(root: Root, dir: string): string {
   return top ? `local:${top.split(/[\\/]/).pop()}` : "";
 }
 
+// Branch words that look like issue IDs but aren't ("setup-1", "review-2").
+const NOT_ISSUE = new Set(
+  "ISSUE SETUP REVIEW FIX FEAT FEATURE BUG CHORE HOTFIX RELEASE TEST TASK STEP PHASE PART SPRINT DEMO POC SPIKE WIP AGENT PR V".split(" "),
+);
+
 /** Linear-style issue id from a branch name, e.g. "mack/pod-1860-fix-auth" -> "POD-1860". */
 export function issueFromBranch(branch: string): string {
-  const m = branch.match(/(?:^|[^a-z])([a-z]{2,6}-\d+)/i);
-  return m ? m[1]!.toUpperCase() : "";
+  for (const m of branch.matchAll(/(?:^|[^a-z])([a-z]{2,6})-(\d+)/gi)) {
+    const key = m[1]!.toUpperCase();
+    if (!NOT_ISSUE.has(key)) return `${key}-${m[2]}`;
+  }
+  return "";
 }
