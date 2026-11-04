@@ -11,9 +11,10 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    # macOS so the darwin binaries get an ad-hoc code signature (required on Apple Silicon).
-    runs-on: macos-latest
+  release:
+    # One Linux box builds every target. Bun ad-hoc signs the macOS binaries
+    # when cross-compiling, which Apple Silicon requires.
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -22,51 +23,32 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx tsc --noEmit
       - run: bun test
+
       - name: Build all targets
         env:
           TOKSCAN_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('0.0.0-ci.{0}', github.run_number) }}
-          # Project API key (write-only, safe to embed). Set under Settings > Variables.
+          # PostHog project API key (write-only, safe to embed). Settings > Secrets and variables > Variables.
           TOKSCAN_POSTHOG_KEY: ${{ vars.TOKSCAN_POSTHOG_KEY }}
         run: bun run scripts/build.ts
+
       - name: Checksums and installers
         run: |
           cp scripts/install.sh scripts/install.ps1 dist/
-          cd dist && shasum -a 256 tokscan-* install.sh install.ps1 > checksums.txt && cat checksums.txt
-      - run: ./dist/tokscan-darwin-arm64 version && ./dist/tokscan-darwin-arm64 report --days 1
+          cd dist && sha256sum tokscan-* install.sh install.ps1 > checksums.txt && cat checksums.txt
+
+      - name: Smoke test (linux-x64)
+        run: |
+          ./dist/tokscan-linux-x64 version
+          ./dist/tokscan-linux-x64 report --days 1
+          file dist/*
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
 
-  smoke:
-    needs: build
-    strategy:
-      matrix:
-        include:
-          - { os: ubuntu-latest, bin: tokscan-linux-x64 }
-          - { os: ubuntu-24.04-arm, bin: tokscan-linux-arm64 }
-          - { os: windows-latest, bin: tokscan-windows-x64.exe }
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-      - shell: bash
-        run: |
-          chmod +x ${{ matrix.bin }} || true
-          ./${{ matrix.bin }} version
-          ./${{ matrix.bin }} report --days 1
-          ./${{ matrix.bin }} help
-
-  publish:
-    if: github.ref_type == 'tag'
-    needs: smoke
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist
-      - env:
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" dist/* --repo "${{ github.repository }}" --title "${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" dist/* --title "${{ github.ref_name }}" --generate-notes
