@@ -27,9 +27,14 @@ jobs:
       - name: Build all targets
         env:
           TOKSCAN_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || format('0.0.0-ci.{0}', github.run_number) }}
-          # PostHog project API key (write-only, safe to embed). Settings > Secrets and variables > Variables.
-          TOKSCAN_POSTHOG_KEY: ${{ vars.TOKSCAN_POSTHOG_KEY }}
-        run: bun run scripts/build.ts
+          # PostHog project API key (write-only, so fine to embed). Repo secret, or variable as a fallback.
+          TOKSCAN_POSTHOG_KEY: ${{ secrets.TOKSCAN_POSTHOG_KEY || vars.TOKSCAN_POSTHOG_KEY }}
+        run: |
+          if [ -z "$TOKSCAN_POSTHOG_KEY" ] && [ "${{ github.ref_type }}" = tag ]; then
+            echo "::error::TOKSCAN_POSTHOG_KEY is not set; refusing to publish binaries that can't sync"
+            exit 1
+          fi
+          bun run scripts/build.ts
 
       - name: Checksums and installers
         run: |
@@ -40,6 +45,7 @@ jobs:
         run: |
           ./dist/tokscan-linux-x64 version
           ./dist/tokscan-linux-x64 report --days 1
+          ./dist/tokscan-linux-x64 status | grep -q "key set" && echo "PostHog key baked in"
           file dist/*
 
       - uses: actions/upload-artifact@v4

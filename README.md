@@ -127,7 +127,7 @@ Environment overrides:
 
 ## Releasing
 
-1. Set the repo variable `TOKSCAN_POSTHOG_KEY` (Settings → Secrets and variables → Variables). This is the PostHog project API key. It can only send events, so it is safe to build into the binary.
+1. Set the repo secret `TOKSCAN_POSTHOG_KEY` (Settings → Secrets and variables → Actions). This is the PostHog project API key. It can only send events, so it is safe to build into the binary. A tagged release fails if the key is missing.
 2. Tag and push:
 
    ```sh
