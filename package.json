@@ -1,0 +1,17 @@
+{
+  "name": "tokscan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-project AI token usage from local coding-agent logs",
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run scripts/build.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.0"
+  }
+}
