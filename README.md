@@ -136,9 +136,11 @@ Environment overrides:
 
 The `release` workflow then:
 
-1. Builds all five binaries on macOS, so the Mac builds get a code signature.
-2. Smoke-tests them on Linux x64, Linux arm64 and Windows.
+1. Builds all five binaries on one Blacksmith Linux runner. Bun ad-hoc signs the Mac binaries when cross-compiling, which Apple Silicon requires.
+2. Smoke-tests the Linux build.
 3. Publishes the binaries, `install.sh`, `install.ps1` and `checksums.txt` as a GitHub release.
+
+CI uses Blacksmith runners, like the org's other repos, so the Blacksmith GitHub App must have access to this repo.
 
 The install URLs above always point at the latest release.
 
